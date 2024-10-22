@@ -280,10 +280,14 @@ class App(customtkinter.CTk):
             self.third_frame, placeholder_text="Wezipesi")
         self.third_frame_staff_role.grid(row=6, column=0, padx=20, pady=10)
 
+        self.third_frame_staff_time = customtkinter.CTkEntry(
+                    self.third_frame, placeholder_text="Wagty")
+        self.third_frame_staff_time.grid(row=7, column=0, padx=20, pady=10)
+
         self.third_frame_add_staff_button = customtkinter.CTkButton(self.third_frame, text="Işgär Goş",
                                                                     command=self.add_staff_to_known_people)
         self.third_frame_add_staff_button.grid(
-            row=7, column=0, padx=20, pady=10)
+            row=8, column=0, padx=20, pady=10)
 
         # select default frame
         self.select_frame_by_name("home")
@@ -328,13 +332,17 @@ class App(customtkinter.CTk):
 
         for record in records:
             record_time = datetime.strptime(record[3], '%H:%M:%S').time()
+            scheduled_time_str = record[1].split(' - ')[2]  # Gets "08:00"
+            scheduled_time = datetime.strptime(scheduled_time_str, '%H:%M').time()
+            
             record = list(record)
-            if time(7, 0, 0) <= record_time <= time(9, 0, 0):
-                record.append("green")
-            elif time(17, 0, 0) <= record_time <= time(19, 0, 0):
+            # If actual time is more than 15 minutes later than scheduled time
+            if record_time > (datetime.combine(datetime.today(), scheduled_time) + timedelta(minutes=15)).time():
                 record.append("red")
-            else:
+            elif time(17, 0, 0) <= record_time <= time(19, 0, 0):
                 record.append("yellow")
+            else:
+                record.append("green")
             custom.append(record)
 
         conn.close()
@@ -526,11 +534,20 @@ class App(customtkinter.CTk):
             if is_valid_image:
                 new_name = self.third_frame_staff_name.get() + " - " + \
                     self.third_frame_staff_role.get()
-                if not new_name:
+                arrival_time_str = self.third_frame_staff_time.get()
+                if not new_name or not arrival_time_str:
                     messagebox.showerror("Näsazlyk", "Dogry at giriziň.")
                     return
+                try:
+                    arrival_time = datetime.strptime(
+                        arrival_time_str, '%H:%M').time()
+                except ValueError:
+                    messagebox.showerror(
+                        "Näsazlyk", "Wagty dogry formatda giriziň (HH:MM).")
+                    return
+                new_name = new_name + " - " + arrival_time_str
                 destination_path = os.path.join(
-                    "known_people", new_name + ".jpg")
+                                    "known_people", new_name + ".jpg")
 
                 try:
                     self.image_1 = self.image_1.convert("RGB")
